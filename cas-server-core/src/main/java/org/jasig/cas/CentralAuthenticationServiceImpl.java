@@ -123,6 +123,16 @@ public final class CentralAuthenticationServiceImpl implements CentralAuthentica
     private PersistentIdGenerator persistentIdGenerator = new ShibbolethCompatiblePersistentIdGenerator();
 
     /**
+     * If not null, default registration for the Services Management service.
+     * If authentication would otherwise be denied for lack of registration of this service, CAS will
+     * automatically register this service so that the administrator is never locked out from the services management
+     * service.
+     *
+     * If null, disables the auto-registration behavior.
+     */
+    private RegisteredService servicesManagementServiceRegistration = null;
+
+    /**
      * Implementation of destoryTicketGrantingTicket expires the ticket provided
      * and removes it from the TicketRegistry.
      * 
@@ -182,8 +192,17 @@ public final class CentralAuthenticationServiceImpl implements CentralAuthentica
             }
         }
 
-        final RegisteredService registeredService = this.servicesManager
+        RegisteredService registeredService = this.servicesManager
             .findServiceBy(service);
+
+        if (registeredService == null
+                && this.servicesManagementServiceRegistration != null
+                && service.getId().equals(this.servicesManagementServiceRegistration.getServiceId())) {
+            log.warn("Services Management application [" + this.servicesManagementServiceRegistration.getServiceId() + "] was not registered.  Automatically registering it to allow access to Web-based services management.");
+            this.servicesManager.save(this.servicesManagementServiceRegistration);
+            registeredService = this.servicesManager.findServiceBy(service);
+
+        }
 
         if (registeredService == null || !registeredService.isEnabled()) {
             log.warn("ServiceManagement: Unauthorized Service Access. Service [" + service.getId() + "] not found in Service Registry.");
@@ -317,7 +336,17 @@ public final class CentralAuthenticationServiceImpl implements CentralAuthentica
 
         final ServiceTicket serviceTicket = (ServiceTicket) this.serviceTicketRegistry.getTicket(serviceTicketId, ServiceTicket.class);
 
-        final RegisteredService registeredService = this.servicesManager.findServiceBy(service);
+        RegisteredService registeredService = this.servicesManager.findServiceBy(service);
+
+         if (registeredService == null
+                && this.servicesManagementServiceRegistration != null
+                && service.getId().equals(this.servicesManagementServiceRegistration.getServiceId())) {
+
+            log.warn("Services Management application [" + this.servicesManagementServiceRegistration.getServiceId() + "] was not registered.  Automatically registering it to allow access to Web-based services management.");
+            this.servicesManager.save(this.servicesManagementServiceRegistration);
+            registeredService = this.servicesManager.findServiceBy(service);
+
+        }
 
         if (registeredService == null || !registeredService.isEnabled()) {
             log.warn("ServiceManagement: Service does not exist is not enabled, and thus not allowed to validate tickets.   Service: [" + service.getId() + "]");
@@ -495,5 +524,13 @@ public final class CentralAuthenticationServiceImpl implements CentralAuthentica
     public void setPersistentIdGenerator(
         final PersistentIdGenerator persistentIdGenerator) {
         this.persistentIdGenerator = persistentIdGenerator;
+    }
+
+    public RegisteredService getServicesManagementServiceRegistration() {
+        return servicesManagementServiceRegistration;
+    }
+
+    public void setServicesManagementServiceRegistration(RegisteredService servicesManagementServiceRegistration) {
+        this.servicesManagementServiceRegistration = servicesManagementServiceRegistration;
     }
 }
