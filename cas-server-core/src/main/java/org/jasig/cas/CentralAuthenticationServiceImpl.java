@@ -21,6 +21,7 @@ import org.jasig.cas.services.ServicesManager;
 import org.jasig.cas.services.UnauthorizedProxyingException;
 import org.jasig.cas.services.UnauthorizedServiceException;
 import org.jasig.cas.services.UnauthorizedSsoServiceException;
+import org.jasig.cas.services.UsernameAttributeNotAvailableException;
 import org.jasig.cas.ticket.ExpirationPolicy;
 import org.jasig.cas.ticket.InvalidTicketException;
 import org.jasig.cas.ticket.ServiceTicket;
@@ -358,9 +359,30 @@ public final class CentralAuthenticationServiceImpl implements CentralAuthentica
                 .getGrantingTicket().getChainedAuthentications().get(
                     authenticationChainSize - 1);
             final Principal principal = authentication.getPrincipal();
-            final String principalId = registeredService.isAnonymousAccess()
-                ? this.persistentIdGenerator.generate(principal, serviceTicket
-                    .getService()) : principal.getId();
+            String principalId = null;
+            if (registeredService.isAnonymousAccess()) {
+                // use an opaque, for-this-service identifier to protect user privacy
+                principalId = this.persistentIdGenerator.generate(principal, serviceTicket.getService());
+            } else {
+                String attributeToUseAsUsername = registeredService.getUsernameAttribute();
+
+                if (RegisteredService.DEFAULT_CAS_USERNAME_BEHAVIOR_META_USER_ATTRIBUTE_NAME.equals(attributeToUseAsUsername)) {
+                    principalId = principal.getId();
+                }  else {
+                    principalId = (String) principal.getAttributes().get(attributeToUseAsUsername);
+
+                    if (principalId == null) {
+
+                        log.error("Principal [" + principal + "] did not have attribute [" +
+                                attributeToUseAsUsername + "] among attributes [" + principal.getAttributes() +
+                                "] so CAS cannot provide on the validation response the user attribute the registered service [" + registeredService + "] expects.");
+
+                        throw new UsernameAttributeNotAvailableException(serviceTicket.getService().getId(), attributeToUseAsUsername);
+                    }
+                }
+
+            }
+
 
             final Authentication authToUse;
 
