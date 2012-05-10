@@ -21,8 +21,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * SimpleFormController to handle adding/editing of RegisteredServices.
@@ -110,16 +109,30 @@ public final class RegisteredServiceSimpleFormController extends SimpleFormContr
 
     /**
      * Returns the attributes, page title, and command name.
-     * 
+     *
      * @see org.springframework.web.servlet.mvc.SimpleFormController#referenceData(javax.servlet.http.HttpServletRequest)
      */
     protected final Map referenceData(final HttpServletRequest request)
-        throws Exception {
+            throws Exception {
         final Map<String, Object> model = new HashMap<String, Object>();
+
+        List possibleAttributeNames = new ArrayList();
+        possibleAttributeNames.addAll(this.personAttributeDao.getPossibleUserAttributeNames());
+        Collections.sort(possibleAttributeNames);
+
         model
-            .put("availableAttributes", this.personAttributeDao.getPossibleUserAttributeNames());
+                .put("availableAttributes", possibleAttributeNames);
+
+        List possibleAttributeNamesAndDefault = new ArrayList();
+        possibleAttributeNamesAndDefault.addAll(this.personAttributeDao.getPossibleUserAttributeNames());
+        possibleAttributeNamesAndDefault.add("(default)");
+        possibleAttributeNamesAndDefault.add("(generated opaque identifier)");
+        Collections.sort(possibleAttributeNamesAndDefault);
+
+        model.put("availableAttributesAndDefault", possibleAttributeNamesAndDefault);
         model.put("pageTitle", getFormView());
         model.put("commandName", getCommandName());
         return model;
     }
+
 }
