@@ -75,6 +75,12 @@ public class RegisteredServiceImpl
     @Column(name = "evaluation_order", nullable = false)
     private int evaluationOrder;
 
+    /**
+     * Name of the user attribute that this service expects as the value of the username payload in the
+     * CAS serviceValidate and proxyValidate responses.
+     */
+    private String usernameAttribute = DEFAULT_CAS_USERNAME_BEHAVIOR_META_USER_ATTRIBUTE_NAME;
+
     public boolean isAnonymousAccess() {
         return this.anonymousAccess;
     }
@@ -216,6 +222,39 @@ public class RegisteredServiceImpl
 
     public int getEvaluationOrder() {
         return this.evaluationOrder;
+    }
+
+
+    public String getUsernameAttribute() {
+        return this.usernameAttribute;
+    }
+
+    /**
+     * Sets the name of the user attribute to use as the username when providing usernames to this registered
+     * service.
+     * '(default)' has the special meaning of falling back on CAS server default behavior.
+     * '(generated opaque identifier)' has the special meaning of invoking CAS server's 'anonymous access' feature of
+     * using generated unique identifiers rather than the username attribute as the username value in CAS ticket
+     * validation responses.
+     * A null argument to this method has the special behavior of setting the username attribute to '(default)', that is,
+     * of falling back on CAS server default behavior.
+     * @param usernameAttributeArg
+     */
+    public void setUsernameAttribute(String usernameAttributeArg) {
+
+        if (usernameAttributeArg == null) {
+            usernameAttributeArg = DEFAULT_CAS_USERNAME_BEHAVIOR_META_USER_ATTRIBUTE_NAME;
+        }
+
+        if (usernameAttributeArg.equals("(generated opaque identifier)")) {
+            this.setAnonymousAccess(true);
+        } else {
+            // specifying any user attribute for release means that the generated opaque identifier will not be
+            // serving in the role of the username in ticket validation responses
+            this.setAnonymousAccess(false);
+        }
+
+        this.usernameAttribute = usernameAttributeArg;
     }
 
     public Object clone() throws CloneNotSupportedException {

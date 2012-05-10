@@ -112,6 +112,22 @@ public interface RegisteredService extends Cloneable, Serializable {
      * @return true if they match, false otherwise.
      */
     boolean matches(final Service service);
-    
+
+    /**
+     * Get the name of the attribute this application prefers to consume as username.
+     * @return String representing the name of the attribute this application prefers to consume as username.
+     * '(default)' has the special meaning of falling back on the CAS server default for determining username rather
+     * than using a service-registration-specified attribute to username mapping.
+     * '(generated opaque identifier)' has the special meaning of releasing no user attribute and CAS instead
+     * generating a persistent per-user-per-service unique identifier.  Such identifiers may provide some measure of
+     * anonymity in that while they uniquely identify the user over multiple sessions with the service, they are not
+     * naively cross-referencable across services.
+     */
+    public String getUsernameAttribute();
+
+
+    String DEFAULT_CAS_USERNAME_BEHAVIOR_META_USER_ATTRIBUTE_NAME = "(default)";
+
+
     Object clone() throws CloneNotSupportedException;
 }
